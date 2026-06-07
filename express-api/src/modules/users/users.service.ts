@@ -1,53 +1,122 @@
-import { db } from "../../config/database.js";
-import { redis } from "../../config/redis.js";
-import { v4 as uuidv4 } from "uuid";
+import { prisma } from "../../config/prisma.js";
+
+import {
+  getCache,
+  setCache,
+  deleteCache,
+  invalidatePattern,
+} from "../../config/cache.js";
 
 export interface User {
-    id: string;
-    name: string;
-    email: string;
-    created_at?: Date;
+  id: string;
+  name: string;
+  email: string;
+  created_at?: Date;
 }
 
 export class UsersService {
-    async createUser(name: string, email: string): Promise<User> {
-        const id = uuidv4();
-        const result = await db.query<User>(
-            "INSERT INTO users (id, name, email) VALUES ($1, $2, $3) RETURNING *",
-            [id, name, email]
-        );
-        const user = result.rows[0];
 
-        // Cache in Redis for 1 hour
-        await redis.set(`user:${id}`, JSON.stringify(user), "EX", 3600);
+  async createUser(name: string, email: string): Promise<User> {
 
-        return user;
+    const user = await prisma.user.create({
+      data: {
+        name,
+        email,
+      },
+    });
+
+    // Store in Redis cache
+    await setCache(`user:${ user.id } `, user);
+    return user;
+  }
+
+  async getUserById(id: string): Promise<User | null> {
+
+    // Try Redis Cache first
+    const cachedUser = await getCache<User>(`user:${ id } `);
+
+    if (cachedUser) {
+      console.log("CACHE HIT");
+      return cachedUser;
+    }
+    console.log("DATABASE HIT");
+    // Query Database
+    const user = await prisma.user.findUnique({
+      where: {
+        id,
+      },
+    });
+
+    if (!user) {
+      return null;
     }
 
-    async getUserById(id: string): Promise<User | null> {
-        // Try Cache first
-        const cachedUser = await redis.get(`user:${id}`);
-        if (cachedUser) {
-            return JSON.parse(cachedUser) as User;
-        }
+    // Store back into Redis
+    await setCache(`user:${ user.id } `, user);
 
-        // Query Database
-        const result = await db.query<User>(
-            "SELECT * FROM users WHERE id = $1",
-            [id]
-        );
+    return user;
+  }
 
-        if (result.rows.length === 0) {
-            return null;
-        }
+  async getAllUsers(page = 1, limit = 10) {
 
-        const user = result.rows[0];
+    const skip = (page - 1) * limit;
 
-        // Store back in Redis Cache for 1 hour
-        await redis.set(`user:${id}`, JSON.stringify(user), "EX", 3600);
+    const users = await prisma.user.findMany({
+      skip,
+      take: limit,
 
-        return user;
-    }
+      orderBy: {
+        created_at: "desc",
+      },
+    });
+
+    const total = await prisma.user.count();
+
+    return {
+      users,
+
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async updateUser(id: string, name: string) {
+
+    const user = await prisma.user.update({
+      where: {
+        id,
+      },
+
+      data: {
+        name,
+      },
+    });
+
+    // Remove stale cache
+    await deleteCache(`user:${ id } `);
+
+    return user;
+  }
+
+  async deleteUser(id: string) {
+
+    await prisma.user.delete({
+      where: {
+        id,
+      },
+    });
+
+    // Remove cache
+    await deleteCache(`user:${ id } `);
+
+    return {
+      message: "User deleted successfully",
+    };
+  }
 }
 
 export const usersService = new UsersService();

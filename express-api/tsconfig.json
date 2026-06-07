@@ -10,7 +10,10 @@
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "types": [
+      "node"
+    ]
   },
   "include": [
     "src"
@@ -20,3 +23,20 @@
     "dist"
   ]
 }
+/*
+{ "compilerOptions":
+  { "target": "ES2022",
+    "module": "NodeNext", 
+    "moduleResolution": "NodeNext", 
+    "rootDir": "./src", 
+    "outDir": "./dist", 
+    "strict": true, 
+    "esModuleInterop": true,
+     "allowSyntheticDefaultImports": true,
+      "forceConsistentCasingInFileNames": true, 
+      "skipLibCheck": true,
+      "resolveJsonModule": true, 
+      "types": ["node"] }, 
+      "include": ["src"],
+       "exclude": ["node_modules", "dist"] }
+*/
