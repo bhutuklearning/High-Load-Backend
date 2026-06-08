@@ -12,6 +12,7 @@ model User {
   name String 
   email String @unique 
   created_at DateTime @default(now())
+  
   @@map("users") 
 }
 
