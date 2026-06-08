@@ -1,11 +1,141 @@
-import { prisma } from "../../config/prisma.js";
+// import { prisma } from "../../config/prisma.js";
 
+// import {
+//   getCache,
+//   setCache,
+//   deleteCache,
+//   invalidatePattern,
+// } from "../../config/cache.js";
+
+// export interface User {
+//   id: string;
+//   name: string;
+//   email: string;
+//   created_at?: Date;
+// }
+
+// export class UsersService {
+
+//   async createUser(name: string, email: string): Promise<User> {
+
+//     const user = await prisma.user.create({
+//       data: {
+//         name,
+//         email,
+//       },
+//     });
+
+//     // Store in Redis cache
+//     await setCache(`user:${ user.id } `, user);
+//     return user;
+//   }
+
+//   async getUserById(id: string): Promise<User | null> {
+
+//     // Try Redis Cache first
+//     const cachedUser = await getCache<User>(`user:${ id } `);
+
+//     if (cachedUser) {
+//       console.log("CACHE HIT");
+//       return cachedUser;
+//     }
+//     console.log("DATABASE HIT");
+//     // Query Database
+//     const user = await prisma.user.findUnique({
+//       where: {
+//         id,
+//       },
+//     });
+
+//     if (!user) {
+//       return null;
+//     }
+
+//     // Store back into Redis
+//     await setCache(`user:${ user.id } `, user);
+
+//     return user;
+//   }
+
+//   async getAllUsers(page = 1, limit = 10) {
+
+//     const skip = (page - 1) * limit;
+
+//     const users = await prisma.user.findMany({
+//       skip,
+//       take: limit,
+
+//       orderBy: {
+//         created_at: "desc",
+//       },
+//     });
+
+//     const total = await prisma.user.count();
+
+//     return {
+//       users,
+
+//       pagination: {
+//         page,
+//         limit,
+//         total,
+//         totalPages: Math.ceil(total / limit),
+//       },
+//     };
+//   }
+
+//   async updateUser(id: string, name: string) {
+
+//     const user = await prisma.user.update({
+//       where: {
+//         id,
+//       },
+
+//       data: {
+//         name,
+//       },
+//     });
+
+//     // Remove stale cache
+//     await deleteCache(`user:${ id } `);
+
+//     return user;
+//   }
+
+//   async deleteUser(id: string) {
+
+//     await prisma.user.delete({
+//       where: {
+//         id,
+//       },
+//     });
+
+//     // Remove cache
+//     await deleteCache(`user:${ id } `);
+
+//     return {
+//       message: "User deleted successfully",
+//     };
+//   }
+// }
+
+// export const usersService = new UsersService();
+
+
+
+
+
+
+
+import { prisma } from "../../config/prisma.js";
 import {
   getCache,
   setCache,
   deleteCache,
-  invalidatePattern,
 } from "../../config/cache.js";
+
+import { usersRepository }
+  from "./users.repository.js";
 
 export interface User {
   id: string;
@@ -16,61 +146,73 @@ export interface User {
 
 export class UsersService {
 
-  async createUser(name: string, email: string): Promise<User> {
+  async createUser(
+    name: string,
+    email: string
+  ): Promise<User> {
 
-    const user = await prisma.user.create({
-      data: {
+    const user =
+      await usersRepository.createUser(
         name,
-        email,
-      },
-    });
+        email
+      );
 
-    // Store in Redis cache
-    await setCache(`user:${ user.id } `, user);
+    await setCache(
+      `user:${user.id}`,
+      user
+    );
     return user;
   }
 
-  async getUserById(id: string): Promise<User | null> {
+  async getUserById(
+    id: string
+  ): Promise<User | null> {
 
-    // Try Redis Cache first
-    const cachedUser = await getCache<User>(`user:${ id } `);
+    const cachedUser =
+      await getCache<User>(
+        `user:${id}`
+      );
 
     if (cachedUser) {
       console.log("CACHE HIT");
       return cachedUser;
     }
+
     console.log("DATABASE HIT");
-    // Query Database
-    const user = await prisma.user.findUnique({
-      where: {
-        id,
-      },
-    });
+
+    const user =
+      await usersRepository.findUserById(id);
 
     if (!user) {
       return null;
     }
 
-    // Store back into Redis
-    await setCache(`user:${ user.id } `, user);
+    await setCache(
+      `user:${user.id}`,
+      user
+    );
 
     return user;
   }
 
-  async getAllUsers(page = 1, limit = 10) {
+  async getAllUsers(
+    page = 1,
+    limit = 10
+  ) {
 
-    const skip = (page - 1) * limit;
+    const skip =
+      (page - 1) * limit;
 
-    const users = await prisma.user.findMany({
-      skip,
-      take: limit,
+    const [users, total] =
+      await Promise.all([
 
-      orderBy: {
-        created_at: "desc",
-      },
-    });
+        usersRepository.findAllUsers(
+          skip,
+          limit
+        ),
 
-    const total = await prisma.user.count();
+        usersRepository.countUsers(),
+      ]);
 
     return {
       users,
@@ -79,44 +221,46 @@ export class UsersService {
         page,
         limit,
         total,
-        totalPages: Math.ceil(total / limit),
+
+        totalPages:
+          Math.ceil(total / limit),
       },
     };
   }
 
-  async updateUser(id: string, name: string) {
+  async updateUser(
+    id: string,
+    name: string
+  ) {
 
-    const user = await prisma.user.update({
-      where: {
+    const user =
+      await usersRepository.updateUser(
         id,
-      },
+        name
+      );
 
-      data: {
-        name,
-      },
-    });
-
-    // Remove stale cache
-    await deleteCache(`user:${ id } `);
+    await deleteCache(
+      `user:${id}`
+    );
 
     return user;
   }
 
   async deleteUser(id: string) {
 
-    await prisma.user.delete({
-      where: {
-        id,
-      },
-    });
+    await usersRepository.deleteUser(id);
 
-    // Remove cache
-    await deleteCache(`user:${ id } `);
+    await deleteCache(
+      `user:${id}`
+    );
 
     return {
-      message: "User deleted successfully",
+      message:
+        "User deleted successfully",
     };
   }
 }
 
-export const usersService = new UsersService();
+export const usersService =
+  new UsersService();
+
