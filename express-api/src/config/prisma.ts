@@ -1,4 +1,3 @@
-
 import { PrismaClient } from "../../generated/prisma/client.js";
 import { PrismaPg } from "@prisma/adapter-pg";
 import pg from "pg";
@@ -15,3 +14,7 @@ export const prisma = new PrismaClient({
   adapter,
 });
 
+
+
+// import { PrismaClient } from "../../generated/prisma/index.js";
+// export const prisma = new PrismaClient();

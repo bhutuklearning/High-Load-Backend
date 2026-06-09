@@ -1,5 +1,4 @@
 services:
-
   nginx:
     image: nginx:stable-alpine
     container_name: nginx
@@ -17,8 +16,24 @@ services:
     build:
       context: ./express-api
     container_name: express-api-1
-    env_file:
-      - ./express-api/.env
+    # env_file:
+    #   - ./express-api/.env
+    environment:
+      PORT: 4000
+
+      POSTGRES_HOST: pgbouncer
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: highload
+
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+
+      DATABASE_URL: postgresql://admin:admin@pgbouncer:5432/highload
+
+      DIRECT_DATABASE_URL: postgresql://admin:admin@postgres:5432/highload
+      DISABLE_RATE_LIMITER: "true"
     depends_on:
       - postgres
       - redis
@@ -34,8 +49,24 @@ services:
     build:
       context: ./express-api
     container_name: express-api-2
-    env_file:
-      - ./express-api/.env
+    # env_file:
+    #   - ./express-api/.env
+    environment:
+      PORT: 4000
+
+      POSTGRES_HOST: pgbouncer
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: highload
+
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+
+      DATABASE_URL: postgresql://admin:admin@pgbouncer:5432/highload
+
+      DIRECT_DATABASE_URL: postgresql://admin:admin@postgres:5432/highload
+      DISABLE_RATE_LIMITER: "true"
     depends_on:
       - postgres
       - redis
@@ -51,8 +82,24 @@ services:
     build:
       context: ./express-api
     container_name: express-api-3
-    env_file:
-      - ./express-api/.env
+    # env_file:
+    #   - ./express-api/.env
+    environment:
+      PORT: 4000
+
+      POSTGRES_HOST: pgbouncer
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: highload
+
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+
+      DATABASE_URL: postgresql://admin:admin@pgbouncer:5432/highload
+
+      DIRECT_DATABASE_URL: postgresql://admin:admin@postgres:5432/highload
+      DISABLE_RATE_LIMITER: "true"
     depends_on:
       - postgres
       - redis
@@ -66,16 +113,20 @@ services:
 
   postgres:
     image: postgres:16-alpine
+
     container_name: postgres
+
     environment:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: admin
       POSTGRES_DB: highload
+
     ports:
       - "5432:5432"
+
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
     restart: unless-stopped
 
   pgbouncer:
@@ -88,20 +139,14 @@ services:
       DB_PASSWORD: admin
       DB_HOST: postgres
       DB_NAME: highload
-
       POOL_MODE: transaction
-
       MAX_CLIENT_CONN: 1000
       DEFAULT_POOL_SIZE: 50
-
       AUTH_TYPE: scram-sha-256
-
     ports:
       - "6432:5432"
-
     depends_on:
       - postgres
-
     restart: unless-stopped
 
   redis:
@@ -115,7 +160,6 @@ services:
       - redis_data:/data
     restart: unless-stopped
 
-
   prometheus:
     image: prom/prometheus
     container_name: prometheus
@@ -124,7 +168,6 @@ services:
     ports:
       - "9090:9090"
     restart: unless-stopped
-
 
   grafana:
     image: grafana/grafana
