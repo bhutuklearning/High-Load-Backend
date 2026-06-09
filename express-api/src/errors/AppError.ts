@@ -10,9 +10,12 @@ export class AppError extends Error {
     super(message);
     this.statusCode = statusCode;
     this.isOperational = true;
+    this.name = this.constructor.name;
+
     Error.captureStackTrace(
       this,
       this.constructor
     );
   }
 }
+

@@ -10,10 +10,12 @@ import { errorHandler } from "./middleware/errorHandler.js";
 import { metricsMiddleware } from "./middleware/metricsMiddleware.js";
 import metricsRouter from "./modules/metrics/metrics.router.js";
 import { apiRateLimiter } from "./middleware/rateLimiter.js";
+import { requestContext } from "./middleware/requestContext.js";
 
 export function createApp() {
   const app = express();
 
+  app.use(requestContext);
   app.use(helmet());
   app.use(cors());
   app.use(compression());
