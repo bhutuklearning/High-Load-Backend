@@ -17,13 +17,15 @@ model User {
 }
 
 model Document {
-  id            String   @id @default(uuid())
-  title         String
-  content       String
-  summary       String?
-  keywords      Json?
-  sentiment     String?
-  reading_time  Int?
-  created_at    DateTime @default(now())
-}
+  id           String   @id @default(uuid())
+  title        String
+  content      String
+  summary      String?
+  keywords     Json?
+  sentiment    String?
+  reading_time Int?
+  status       String   @default("pending")
+  created_at   DateTime @default(now())
 
+  @@map("documents")
+}

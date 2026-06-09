@@ -5,6 +5,7 @@ import compression from "compression";
 
 import healthRouter from "./modules/health/health.router.js";
 import usersRouter from "./modules/users/users.router.js";
+import documentsRouter from "./modules/documents/documents.router.js";
 
 import { errorHandler } from "./middleware/errorHandler.js";
 import { metricsMiddleware } from "./middleware/metricsMiddleware.js";
@@ -25,6 +26,7 @@ export function createApp() {
 
   app.use("/api/health", healthRouter);
   app.use("/api/users", usersRouter);
+  app.use("/api/documents", documentsRouter);
   app.use("/metrics", metricsRouter);
 
   app.use(errorHandler);

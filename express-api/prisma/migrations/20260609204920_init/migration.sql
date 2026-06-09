@@ -9,7 +9,7 @@ CREATE TABLE "users" (
 );
 
 -- CreateTable
-CREATE TABLE "Document" (
+CREATE TABLE "documents" (
     "id" TEXT NOT NULL,
     "title" TEXT NOT NULL,
     "content" TEXT NOT NULL,
@@ -17,9 +17,10 @@ CREATE TABLE "Document" (
     "keywords" JSONB,
     "sentiment" TEXT,
     "reading_time" INTEGER,
+    "status" TEXT NOT NULL DEFAULT 'pending',
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "Document_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "documents_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
