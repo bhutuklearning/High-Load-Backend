@@ -7,6 +7,7 @@ import {
 import {
     createDocumentSchema,
     getDocumentSchema,
+    paginationSchema,
 } from "./documents.schema.js";
 
 import { documentsService }
@@ -21,11 +22,8 @@ export class DocumentsController {
     ) {
 
         try {
-
             const validated = createDocumentSchema.parse(req.body);
-
-            const document =
-                await documentsService.createDocument(
+            const document = await documentsService.createDocument(
                     validated.title,
                     validated.content
                 );
@@ -38,19 +36,18 @@ export class DocumentsController {
     }
 
     async getAllDocuments(
-        _req: Request,
+        req: Request,
         res: Response,
         next: NextFunction
     ) {
 
         try {
-
-            const documents =
-                await documentsService
-                    .getAllDocuments();
-
+            const validated = paginationSchema.parse(req.query);
+            const documents = await documentsService.getAllDocuments(
+                validated.page,
+                validated.limit
+            );
             res.status(200).json(documents);
-
         } catch (err) {
             next(err);
         }
