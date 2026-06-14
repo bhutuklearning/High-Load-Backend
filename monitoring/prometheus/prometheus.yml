@@ -3,7 +3,9 @@ global:
 
 scrape_configs:
 
+  # EXPRESS API
   - job_name: "express-api"
+
     static_configs:
       - targets:
           - "express-api-1:4000"
@@ -12,3 +14,23 @@ scrape_configs:
 
     metrics_path: /metrics
 
+  # REDIS
+  - job_name: "redis"
+
+    static_configs:
+      - targets:
+          - "redis-exporter:9121"
+
+  # POSTGRES
+  - job_name: "postgres"
+
+    static_configs:
+      - targets:
+          - "postgres-exporter:9187"
+
+  # NGINX
+  - job_name: "nginx"
+
+    static_configs:
+      - targets:
+          - "nginx-exporter:9113"

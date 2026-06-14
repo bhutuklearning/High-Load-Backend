@@ -12,6 +12,21 @@ services:
       - express-api-3
     restart: unless-stopped
 
+  nginx-exporter:
+    image: nginx/nginx-prometheus-exporter
+    container_name: nginx-exporter
+
+    command:
+      - -nginx.scrape-uri=http://nginx/nginx_status
+
+    ports:
+      - "9113:9113"
+
+    depends_on:
+      - nginx
+
+    restart: unless-stopped
+
   express-api-1:
     build:
       context: ./express-api
@@ -129,6 +144,22 @@ services:
 
     restart: unless-stopped
 
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter
+    container_name: postgres-exporter
+
+    environment:
+      DATA_SOURCE_NAME: "postgresql://admin:admin@postgres:5432/highload?sslmode=disable"
+
+    ports:
+      - "9187:9187"
+
+    depends_on:
+      - postgres
+
+    restart: unless-stopped
+
+
   pgbouncer:
     image: edoburu/pgbouncer:latest
 
@@ -159,6 +190,19 @@ services:
       - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
       - redis_data:/data
     restart: unless-stopped
+
+  redis-exporter:
+      image: oliver006/redis_exporter
+      container_name: redis-exporter
+
+      environment:
+        REDIS_ADDR: redis://redis:6379
+
+      ports:
+        - "9121:9121"
+      depends_on:
+        - redis
+      restart: unless-stopped
 
   prometheus:
     image: prom/prometheus
