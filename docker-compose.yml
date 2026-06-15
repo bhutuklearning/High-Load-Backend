@@ -126,6 +126,20 @@ services:
       timeout: 10s
       retries: 3
 
+  fastapi-service:
+    build:
+      context: ./fastapi-service
+
+    container_name: fastapi-service
+
+    env_file:
+      - ./fastapi-service/.env
+
+    ports:
+      - "8000:8000"
+
+    restart: unless-stopped
+
   postgres:
     image: postgres:16-alpine
 
