@@ -1,8 +1,4 @@
-import {
-    getCache,
-    setCache,
-    deleteCache,
-} from "../../config/cache.js";
+import { getCache, setCache, deleteCache, } from "../../config/cache.js";
 import { documentsRepository } from "./documents.repository.js";
 
 import {
@@ -12,7 +8,9 @@ import {
     cacheMissesTotal,
     documentProcessingDuration,
 } from "../../utils/metrics.js";
+
 import axios from "axios";
+import { enqueueDocumentJob } from "../../utils/documentQueue.js";
 
 export class DocumentsService {
 
@@ -20,7 +18,6 @@ export class DocumentsService {
         title: string,
         content: string
     ) {
-
         // Start metrics timer
         const endTimer = documentProcessingDuration.startTimer();
 
@@ -86,81 +83,92 @@ export class DocumentsService {
 
         // }, 5000);
 
-        setTimeout(async () => {
-            try {
-                console.log(`Processing document ${document.id} `);
-                // Call FastAPI AI worker
-                const response =
-                    await axios.post(
-                        "http://fastapi-service:8000/ai/process",
-                        {
-                            title: document.title,
-                            content: document.content,
-                        }
-                    );
+        // setTimeout(async () => {
+        //     try {
+        //         console.log(`Processing document ${document.id} `);
+        //         // Call FastAPI AI worker
+        //         const response =
+        //             await axios.post(
+        //                 "http://fastapi-service:8000/ai/process",
+        //                 {
+        //                     title: document.title,
+        //                     content: document.content,
+        //                 }
+        //             );
 
-                const aiResponse = response.data.raw_response;
+        //         const aiResponse = response.data.raw_response;
 
-                console.log(aiResponse);
+        //         console.log(aiResponse);
 
-                // SIMPLE PARSING
+        //         // SIMPLE PARSING
 
-                const summaryMatch = aiResponse.match(
-                    /Summary:\s*(.*)/i
-                );
+        //         const summaryMatch = aiResponse.match(
+        //             /Summary:\s*(.*)/i
+        //         );
 
-                const keywordsMatch = aiResponse.match(
-                    /Keywords:\s*(.*)/i
-                );
+        //         const keywordsMatch = aiResponse.match(
+        //             /Keywords:\s*(.*)/i
+        //         );
 
-                const sentimentMatch = aiResponse.match(
-                    /Sentiment:\s*(.*)/i
-                );
+        //         const sentimentMatch = aiResponse.match(
+        //             /Sentiment:\s*(.*)/i
+        //         );
 
-                const summary = summaryMatch?.[1] || "";
+        //         const summary = summaryMatch?.[1] || "";
 
-                const keywords = keywordsMatch?.[1]
-                    ?.split(",")
-                    .map((k: string) => k.trim())
-                    || [];
+        //         const keywords = keywordsMatch?.[1]
+        //             ?.split(",")
+        //             .map((k: string) => k.trim())
+        //             || [];
 
-                const sentiment = sentimentMatch?.[1] || "neutral";
+        //         const sentiment = sentimentMatch?.[1] || "neutral";
 
-                // Update DB with AI fields
-                const updatedDocument = await documentsRepository.updateDocumentAIFields(
-                    document.id,
-                    {
-                        summary,
-                        keywords,
-                        sentiment,
-                        status: "processed",
-                    }
-                );
+        //         // Update DB with AI fields
+        //         const updatedDocument = await documentsRepository.updateDocumentAIFields(
+        //             document.id,
+        //             {
+        //                 summary,
+        //                 keywords,
+        //                 sentiment,
+        //                 status: "processed",
+        //             }
+        //         );
 
-                // Update Redis cache
-                await setCache(
-                    `document:${document.id}`,
-                    updatedDocument
-                );
+        //         // Update Redis cache
+        //         await setCache(
+        //             `document:${document.id}`,
+        //             updatedDocument
+        //         );
 
-                console.log(
-                    `Processed document ${document.id} `
-                );
+        //         console.log(
+        //             `Processed document ${document.id} `
+        //         );
 
-            } catch (error) {
-                console.error("AI processing failed:", error);
-                // mark failed
-                const failedDocument =await documentsRepository.updateDocumentStatus(
-                            document.id,
-                            "failed"
-                        );
+        //     } catch (error) {
+        //         console.error("AI processing failed:", error);
+        //         // mark failed
+        //         const failedDocument = await documentsRepository.updateDocumentStatus(
+        //             document.id,
+        //             "failed"
+        //         );
 
-                await setCache(
-                    `document:${document.id}`,
-                    failedDocument
-                );
-            }
-        }, 3000);
+        //         await setCache(
+        //             `document:${document.id}`,
+        //             failedDocument
+        //         );
+        //     }
+        // }, 3000);
+
+        await enqueueDocumentJob({
+            documentId: document.id,
+            title: document.title,
+            content: document.content,
+        });
+
+        console.log(
+            `Queued document ${document.id}`
+        );
+
         return document;
     }
 
@@ -241,6 +249,37 @@ export class DocumentsService {
         return {
             message:
                 "Document deleted successfully",
+        };
+    }
+
+    async searchDocuments(
+        query: string,
+        page: number,
+        limit: number
+    ) {
+
+        const {
+            documents,
+            total,
+        } =
+            await documentsRepository
+                .searchDocuments(
+                    query,
+                    page,
+                    limit
+                );
+
+        return {
+            data: documents,
+
+            pagination: {
+                total,
+                page,
+                limit,
+
+                totalPages:
+                    Math.ceil(total / limit),
+            },
         };
     }
 }

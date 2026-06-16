@@ -132,6 +132,10 @@ services:
 
     container_name: fastapi-service
 
+    depends_on:
+      - nginx
+      - redis
+
     env_file:
       - ./fastapi-service/.env
 
@@ -173,7 +177,6 @@ services:
 
     restart: unless-stopped
 
-
   pgbouncer:
     image: edoburu/pgbouncer:latest
 
@@ -206,17 +209,17 @@ services:
     restart: unless-stopped
 
   redis-exporter:
-      image: oliver006/redis_exporter
-      container_name: redis-exporter
+    image: oliver006/redis_exporter
+    container_name: redis-exporter
 
-      environment:
-        REDIS_ADDR: redis://redis:6379
+    environment:
+      REDIS_ADDR: redis://redis:6379
 
-      ports:
-        - "9121:9121"
-      depends_on:
-        - redis
-      restart: unless-stopped
+    ports:
+      - "9121:9121"
+    depends_on:
+      - redis
+    restart: unless-stopped
 
   prometheus:
     image: prom/prometheus

@@ -98,6 +98,85 @@ export class DocumentsRepository {
         });
     }
 
+    async searchDocuments(
+        query: string,
+        page: number,
+        limit: number
+    ) {
+
+        const skip =
+            (page - 1) * limit;
+
+        const [documents, total] =
+            await Promise.all([
+
+                prisma.document.findMany({
+                    where: {
+                        OR: [
+                            {
+                                title: {
+                                    contains: query,
+                                    mode: "insensitive",
+                                },
+                            },
+
+                            {
+                                content: {
+                                    contains: query,
+                                    mode: "insensitive",
+                                },
+                            },
+
+                            {
+                                summary: {
+                                    contains: query,
+                                    mode: "insensitive",
+                                },
+                            },
+                        ],
+                    },
+
+                    skip,
+                    take: limit,
+
+                    orderBy: {
+                        created_at: "desc",
+                    },
+                }),
+
+                prisma.document.count({
+                    where: {
+                        OR: [
+                            {
+                                title: {
+                                    contains: query,
+                                    mode: "insensitive",
+                                },
+                            },
+
+                            {
+                                content: {
+                                    contains: query,
+                                    mode: "insensitive",
+                                },
+                            },
+
+                            {
+                                summary: {
+                                    contains: query,
+                                    mode: "insensitive",
+                                },
+                            },
+                        ],
+                    },
+                }),
+            ]);
+
+        return {
+            documents,
+            total,
+        };
+    }
 }
 
 export const documentsRepository = new DocumentsRepository();

@@ -1,17 +1,7 @@
-import {
-    Request,
-    Response,
-    NextFunction,
-} from "express";
+import { Request, Response, NextFunction, } from "express";
+import { createDocumentSchema, getDocumentSchema, paginationSchema, searchDocumentsSchema } from "./documents.schema.js";
 
-import {
-    createDocumentSchema,
-    getDocumentSchema,
-    paginationSchema,
-} from "./documents.schema.js";
-
-import { documentsService }
-    from "./documents.service.js";
+import { documentsService } from "./documents.service.js";
 
 export class DocumentsController {
 
@@ -24,9 +14,9 @@ export class DocumentsController {
         try {
             const validated = createDocumentSchema.parse(req.body);
             const document = await documentsService.createDocument(
-                    validated.title,
-                    validated.content
-                );
+                validated.title,
+                validated.content
+            );
 
             res.status(201).json(document);
 
@@ -106,6 +96,34 @@ export class DocumentsController {
                 await documentsService
                     .deleteDocument(
                         validated.id
+                    );
+
+            res.status(200).json(result);
+
+        } catch (err) {
+            next(err);
+        }
+    }
+
+    async searchDocuments(
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ) {
+
+        try {
+
+            const validated =
+                searchDocumentsSchema.parse(
+                    req.query
+                );
+
+            const result =
+                await documentsService
+                    .searchDocuments(
+                        validated.q,
+                        validated.page,
+                        validated.limit
                     );
 
             res.status(200).json(result);
