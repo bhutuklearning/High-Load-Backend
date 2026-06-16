@@ -75,6 +75,29 @@ export class DocumentsRepository {
             },
         });
     }
+
+    async updateDocumentAIFields(
+        id: string,
+        data: {
+            summary: string;
+            keywords: string[];
+            sentiment: string;
+            status: string;
+        }
+    ) {
+        return prisma.document.update({
+            where: {
+                id,
+            },
+            data: {
+                summary: data.summary,
+                keywords: data.keywords,
+                sentiment: data.sentiment,
+                status: data.status,
+            },
+        });
+    }
+
 }
 
 export const documentsRepository = new DocumentsRepository();

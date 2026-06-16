@@ -3,7 +3,6 @@ import {
     setCache,
     deleteCache,
 } from "../../config/cache.js";
-
 import { documentsRepository } from "./documents.repository.js";
 
 import {
@@ -13,6 +12,7 @@ import {
     cacheMissesTotal,
     documentProcessingDuration,
 } from "../../utils/metrics.js";
+import axios from "axios";
 
 export class DocumentsService {
 
@@ -22,15 +22,12 @@ export class DocumentsService {
     ) {
 
         // Start metrics timer
-        const endTimer =
-            documentProcessingDuration.startTimer();
+        const endTimer = documentProcessingDuration.startTimer();
 
         // Calculate reading time
-        const words =
-            content.split(/\s+/).length;
+        const words = content.split(/\s+/).length;
 
-        const reading_time =
-            Math.ceil(words / 200);
+        const reading_time = Math.ceil(words / 200);
 
         // Create document
         const document =
@@ -53,43 +50,117 @@ export class DocumentsService {
         endTimer();
 
         // Simulate async AI/background processing
+        // setTimeout(async () => {
+        //     try {
+
+        //         console.log(
+        //             `Processing document ${document.id}`
+        //         );
+
+        //         // Update DB
+        //         const updatedDocument =
+        //             await documentsRepository
+        //                 .updateDocumentStatus(
+        //                     document.id,
+        //                     "processed"
+        //                 );
+
+        //         // IMPORTANT:
+        //         // Update cache also
+        //         await setCache(
+        //             `document:${document.id}`,
+        //             updatedDocument
+        //         );
+
+        //         console.log(
+        //             `Processed document ${document.id}`
+        //         );
+
+        //     } catch (error) {
+
+        //         console.error(
+        //             "Background processing failed:",
+        //             error
+        //         );
+        //     }
+
+        // }, 5000);
+
         setTimeout(async () => {
-
             try {
+                console.log(`Processing document ${document.id} `);
+                // Call FastAPI AI worker
+                const response =
+                    await axios.post(
+                        "http://fastapi-service:8000/ai/process",
+                        {
+                            title: document.title,
+                            content: document.content,
+                        }
+                    );
 
-                console.log(
-                    `Processing document ${document.id}`
+                const aiResponse = response.data.raw_response;
+
+                console.log(aiResponse);
+
+                // SIMPLE PARSING
+
+                const summaryMatch = aiResponse.match(
+                    /Summary:\s*(.*)/i
                 );
 
-                // Update DB
-                const updatedDocument =
-                    await documentsRepository
-                        .updateDocumentStatus(
-                            document.id,
-                            "processed"
-                        );
+                const keywordsMatch = aiResponse.match(
+                    /Keywords:\s*(.*)/i
+                );
 
-                // IMPORTANT:
-                // Update cache also
+                const sentimentMatch = aiResponse.match(
+                    /Sentiment:\s*(.*)/i
+                );
+
+                const summary = summaryMatch?.[1] || "";
+
+                const keywords = keywordsMatch?.[1]
+                    ?.split(",")
+                    .map((k: string) => k.trim())
+                    || [];
+
+                const sentiment = sentimentMatch?.[1] || "neutral";
+
+                // Update DB with AI fields
+                const updatedDocument = await documentsRepository.updateDocumentAIFields(
+                    document.id,
+                    {
+                        summary,
+                        keywords,
+                        sentiment,
+                        status: "processed",
+                    }
+                );
+
+                // Update Redis cache
                 await setCache(
                     `document:${document.id}`,
                     updatedDocument
                 );
 
                 console.log(
-                    `Processed document ${document.id}`
+                    `Processed document ${document.id} `
                 );
 
             } catch (error) {
+                console.error("AI processing failed:", error);
+                // mark failed
+                const failedDocument =await documentsRepository.updateDocumentStatus(
+                            document.id,
+                            "failed"
+                        );
 
-                console.error(
-                    "Background processing failed:",
-                    error
+                await setCache(
+                    `document:${document.id}`,
+                    failedDocument
                 );
             }
-
-        }, 5000);
-
+        }, 3000);
         return document;
     }
 
@@ -97,15 +168,13 @@ export class DocumentsService {
         page: number,
         limit: number
     ) {
-
         const {
             documents,
             total,
-        } = await documentsRepository
-            .getAllDocuments(
-                page,
-                limit
-            );
+        } = await documentsRepository.getAllDocuments(
+            page,
+            limit
+        );
 
         return {
             data: documents,
@@ -162,17 +231,13 @@ export class DocumentsService {
     }
 
     async deleteDocument(id: string) {
-
         await documentsRepository.deleteDocument(id);
-
         // Increment metric
         documentsDeletedTotal.inc();
-
         // Delete from cache
         await deleteCache(
             `document:${id}`
         );
-
         return {
             message:
                 "Document deleted successfully",
