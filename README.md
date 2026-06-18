@@ -13,7 +13,7 @@ DocScale is a high-throughput, distributed document processing and AI-powered an
 - **Database Connection Pooling**: Fine-grained Postgres database scaling and pool management optimized via PgBouncer in transaction pooling mode.
 - **Production-Ready Observability**: Prometheus instrumentation across the system coupled with pre-configured Grafana dashboards displaying application health, CPU/memory usage, active database pools, and HTTP request statistics.
 - **Automated Health Monitoring**: Comprehensive health status endpoint returning 503 Service Unavailable if critical services (PostgreSQL, Redis) experience connection dropouts.
-- **Resilient Rate Limiting**: Built-in rate limiting to prevent denial-of-service attempts, configurable or bypassable for internal load tests.
+- **Resilient Rate Limiting**: Global rate limiting enforced by `express-rate-limit` on every Express instance (100 requests per 15-minute window by default), configurable via environment variables and bypassable for internal load tests.
 
 ---
 
@@ -156,7 +156,7 @@ User requests for resource-intensive operations (such as processing lengthy file
 Node.js web servers spin up multiple database connection pools. Direct connection pools to PostgreSQL can quickly saturate limits, causing memory spikes and query failures. DocScale places PgBouncer between the API tier and PostgreSQL. Operating in `transaction` mode, PgBouncer allows hundreds of virtual database client threads to share a compact, high-efficiency physical pool of database connections.
 
 ### Rate Limiting and Cache Strategy
-To protect the services under load, a Redis-backed rate limiter protects external endpoints. To speed up read pathways, the system applies a Cache-Aside pattern. If a document read request hits a cache miss in Redis, the system fetches the record from PostgreSQL, writes it into the Redis cache, and sets a Time-To-Live (TTL). Future requests for the same document resolve in sub-milliseconds without touching PostgreSQL.
+To protect services under load, each Express instance runs an `express-rate-limit` middleware that enforces a ceiling of 100 requests per IP per 15-minute sliding window. The limit and window are configurable through the `RATE_LIMIT_MAX` and `RATE_LIMIT_WINDOW_MS` environment variables. Because the counter is stored in each instance's process memory, the limiter is per-instance rather than globally shared across the cluster. To speed up read pathways, the system applies a Cache-Aside pattern. If a document read request hits a cache miss in Redis, the system fetches the record from PostgreSQL, writes it into the Redis cache, and sets a Time-To-Live (TTL). Future requests for the same document resolve in sub-milliseconds without touching PostgreSQL.
 
 ---
 
