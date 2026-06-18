@@ -1,6 +1,6 @@
 # DocScale
 
-DocScale is a high-throughput, distributed document processing and AI-powered analysis platform. Designed with horizontal scalability and robustness in mind, the platform distributes workload across a cluster of Express API instances behind an Nginx load balancer, distributes workload buffers using a Redis queue, and runs intensive AI summarization, keyword extraction, and sentiment classification tasks asynchronously via a FastAPI worker service integrated with LLM inference APIs.
+DocScale is a high-throughput, distributed document processing and AI-powered analysis platform. Designed with horizontal scalability and robustness in mind, the platform distributes workload across a cluster of Express API instances behind an Nginx load balancer, distributes workload buffers using a Redis queue, and runs intensive AI summarization, keyword extraction, and sentiment classification tasks asynchronously via a FastAPI worker service integrated with LLM inference APIs. As of now it only supports text based document.
 
 ---
 
